@@ -35,37 +35,44 @@ AD01 - <strong>Posibles presentadores</strong>. Varias veces la empresa se encue
 
 <h3>Resolución</h3>
 
-<pre><code>delimiter 0_0
-drop procedure if exists posibles_presentadores 0_0
-
-create procedure posibles_presentadores (in tema varchar(255), in desde datetime, in hasta datetime)
-begin
-    select distinct pdor.id, pdor.nombre, pdor.apellido, pdor.denominacion, pdor.especialidad,
-           ev.id, ev.nombre, pre.nombre
-    from presentador_presentacion pp
-    inner join presentacion pre
-        on pp.id_locacion = pre.id_locacion
-       and pp.nro_sala = pre.nro_sala
-       and pp.fecha_hora_ini = pre.fecha_hora_ini
-    inner join evento ev
-        on pre.id_evento = ev.id
-    inner join presentador pdor
-        on pp.id_presentador = pdor.id
-    where ev.tematica = tema
-      and not exists (
-            select 1
-            from presentador_presentacion prepre
-            inner join presentacion prese
-                on prepre.id_locacion = prese.id_locacion
-               and prepre.nro_sala = prese.nro_sala
-               and prepre.fecha_hora_ini = prese.fecha_hora_ini
-            where prepre.id_presentador = pdor.id
-              and (
-                    (prese.fecha_hora_ini >= desde and prese.fecha_hora_ini &lt; hasta)
-                 or (prese.fecha_hora_fin  >= desde and prese.fecha_hora_fin  &lt; hasta)
-                  )
-        );
-end 0_0
+<pre><code>delimiter
+CREATE PROCEDURE posibles_presentadores
+(
+IN tema  VARCHAR(255),
+IN desde DATETIME,
+IN hasta DATETIME
+)
+BEGIN
+SELECT DISTINCT
+predor.id,
+predor.nombre,
+predor.apellido,
+predor.denominacion,
+predor.especialidad,
+ev.id,
+ev.nombre,
+pres.nombre
+FROM presentador_presentacion pp
+INNER JOIN presentacion pres
+ON  pp.id_locacion    = pres.id_locacion
+AND pp.nro_sala       = pres.nro_sala
+AND pp.fecha_hora_ini = pres.fecha_hora_ini
+INNER JOIN evento ev
+ON pres.id_evento = ev.id
+INNER JOIN presentador predor
+ON pp.id_presentador = predor.id
+WHERE ev.tematica = tema
+AND predor.id NOT IN (
+SELECT pp2.id_presentador
+FROM presentador_presentacion pp2
+INNER JOIN presentacion pres2
+ON  pp2.id_locacion    = pres2.id_locacion
+AND pp2.nro_sala       = pres2.nro_sala
+AND pp2.fecha_hora_ini = pres2.fecha_hora_ini
+WHERE pres2.fecha_hora_ini BETWEEN desde AND hasta
+OR pres2.fecha_hora_fin  BETWEEN desde AND hasta
+);
+END
 
 delimiter ;
 
