@@ -340,50 +340,67 @@ La empresa notó que la creciente variabilidad en temáticas hace difícil armar
 
 <h3>Resolución</h3>
 
-<pre><code>create table tematica (
-    id int unsigned not null auto_increment,
-    descripcion varchar(255) not null,
-    primary key (id)
-);
+<pre><code>
+CREATE TABLE `convenciones_underground`.`tematica` (
+`id` INT NOT NULL AUTO_INCREMENT,
+`descripcion` VARCHAR(45) NULL,
+PRIMARY KEY (`id`));
 
-alter table evento
-add column id_tematica int unsigned null,
-add constraint fk_evento_tematica
-    foreign key (id_tematica) references tematica(id);
+---
 
-create table tematica_presentador (
-    id_tematica int unsigned not null,
-    id_presentador int unsigned not null,
-    primary key (id_tematica, id_presentador),
-    constraint fk_tematica_presentador_tematica 
-        foreign key (id_tematica) references tematica(id),
-    constraint fk_tematica_presentador_presentador 
-        foreign key (id_presentador) references presentador(id)
-);
+ALTER TABLE `convenciones_underground`.`evento`
+ADD COLUMN `idtematica` INT NULL AFTER `nombre`,
+ADD INDEX `fk_evento_tematica_idx` (`idtematica` ASC) VISIBLE;
+;
+ALTER TABLE `convenciones_underground`.`evento`
+ADD CONSTRAINT `fk_evento_tematica`
+FOREIGN KEY (`idtematica`)
+REFERENCES `convenciones_underground`.`tematica` (`id`)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION;
 
-begin;
+---
 
-insert into tematica(descripcion)
-select distinct tematica from evento;
+CREATE TABLE `convenciones_underground`.`tematica_presentador` (
+`idtematica` INT NOT NULL,
+`idpresentador` INT UNSIGNED NOT NULL,
+PRIMARY KEY (`idtematica`, `idpresentador`),
+INDEX `fk_tematica_presentador_presentador_idx` (`idpresentador` ASC) VISIBLE,
+CONSTRAINT `fk_tematica_presentador_tematica`
+FOREIGN KEY (`idtematica`)
+REFERENCES `convenciones_underground`.`tematica` (`id`)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION,
+CONSTRAINT `fk_tematica_presentador_presentador`
+FOREIGN KEY (`idpresentador`)
+REFERENCES `convenciones_underground`.`presentador` (`id`)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION);
 
-update evento
-inner join tematica 
-    on evento.tematica = tematica.descripcion
-set evento.id_tematica = tematica.id;
+---
 
-insert into tematica_presentador
-select distinct ev.id_tematica, pp.id_presentador
-from presentador_presentacion pp
-inner join presentacion pre
-    on pp.id_locacion = pre.id_locacion
-   and pp.nro_sala = pre.nro_sala
-   and pp.fecha_hora_ini = pre.fecha_hora_ini
-inner join evento ev
-    on pre.id_evento = ev.id;
+BEGIN;
 
-commit;
+INSERT INTO tematica (descripcion)
+SELECT DISTINCT tematica FROM evento;
 
-alter table evento
-drop column tematica,
-change column id_tematica id_tematica int unsigned not null;
+UPDATE evento ev
+INNER JOIN tematica tem ON tem.descripcion = ev.tematica
+SET ev.idtematica = [tem.id](http://tem.id/);
+
+INSERT INTO tematica_presentador (idtematica,idpresentador)
+SELECT DISTINCT ev.idtematica, pp.id_presentador
+FROM presentador_presentacion pp
+INNER JOIN presentador pdor ON pdor.id=pp.id_presentador
+INNER JOIN presentacion pcion ON pcion.id_locacion = pp.id_locacion AND
+pcion.nro_sala = pp.nro_sala AND
+pcion.fecha_hora_ini = pp.fecha_hora_ini
+INNER JOIN evento ev ON [ev.id](http://ev.id/) = pcion.id_evento;
+
+COMMIT;
+
+---
+
+ALTER TABLE `convenciones_underground`.`evento`
+DROP COLUMN `tematica`;
 </code></pre>
