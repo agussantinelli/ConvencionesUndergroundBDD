@@ -155,41 +155,49 @@ AD03 - <strong>Registrar cambio en encargados</strong>. A menudo la empresa debe
 
 <h3>Resolución</h3>
 
-<pre><code>create table rol (
-    id int unsigned not null auto_increment,
-    descripcion varchar(255),
-    primary key (id)
-);
+<pre><code>CREATE TABLE `convenciones_underground`.`rol` (
+`id` INT NOT NULL AUTO_INCREMENT,
+`descripcion` VARCHAR(45) NULL,
+PRIMARY KEY (`id`));
 
-alter table encargado_evento
-add column id_rol int unsigned null,
-add column fecha_asignacion date null,
-add column fecha_fin_asignacion date null,
-add constraint fk_encargado_evento_rol
-    foreign key (id_rol) references rol(id)
-    on update cascade on delete restrict;
+ALTER TABLE `convenciones_underground`.`encargado_evento`
+ADD COLUMN `idrol` INT NULL AFTER `rol`,
+ADD COLUMN `fecha_asignacion` DATETIME NULL AFTER `idrol`,
+ADD COLUMN `fecha_fin` DATETIME NULL AFTER `fecha_asignacion`,
+ADD INDEX `fk_encargado_evento_rol_idx` (`idrol` ASC) VISIBLE;
+;
+ALTER TABLE `convenciones_underground`.`encargado_evento`
+ADD CONSTRAINT `fk_encargado_evento_rol`
+FOREIGN KEY (`idrol`)
+REFERENCES `convenciones_underground`.`rol` (`id`)
+ON DELETE NO ACTION
+ON UPDATE NO ACTION;
 
-begin;
-
-insert into rol(descripcion)
+BEGIN;
+insert into rol (descripcion)
 select distinct rol from encargado_evento;
 
-update encargado_evento
-inner join evento
-    on encargado_evento.id_evento = evento.id
-inner join rol
-    on encargado_evento.rol = rol.descripcion
-set encargado_evento.fecha_asignacion = evento.fecha_desde,
-    encargado_evento.id_rol = rol.id;
+UPDATE encargado_evento ee
+INNER JOIN evento ev ON ee.id_evento = [ev.id](http://ev.id/)
+INNER JOIN rol r ON ee.rol = r.descripcion
+SET ee.fecha_asignacion = ev.fecha_desde,
+ee.idrol = [r.id](http://r.id/);
 
-commit;
+COMMIT;
 
-alter table encargado_evento
-change column id_rol id_rol int unsigned not null,
-change column fecha_asignacion fecha_asignacion date not null,
-drop column rol,
-drop primary key,
-add primary key (id_evento, cuil_encargado, id_rol, fecha_asignacion);
+ALTER TABLE `convenciones_underground`.`encargado_evento`
+DROP FOREIGN KEY `fk_encargado_evento_rol`;
+ALTER TABLE `convenciones_underground`.`encargado_evento`
+DROP COLUMN `rol`,
+CHANGE COLUMN `idrol` `idrol` INT NOT NULL ,
+CHANGE COLUMN `fecha_asignacion` `fecha_asignacion` DATETIME NOT NULL ,
+DROP PRIMARY KEY,
+ADD PRIMARY KEY (`id_evento`, `cuil_encargado`, `idrol`, `fecha_asignacion`);
+;
+ALTER TABLE `convenciones_underground`.`encargado_evento`
+ADD CONSTRAINT `fk_encargado_evento_rol`
+FOREIGN KEY (`idrol`)
+REFERENCES `convenciones_underground`.`rol` (`id`);
 </code></pre>
 
 <hr>
