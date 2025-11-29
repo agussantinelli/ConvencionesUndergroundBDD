@@ -285,34 +285,36 @@ Ordenar por cantidad de entradas vendidas descendente y fecha de inicio de la pr
 
 <h3>Resolución</h3>
 
-<pre><code>with ent_pres as (
-    select ev.tematica, pe.id_locacion, pe.nro_sala, pe.fecha_hora_ini,
-           pre.nombre as nombre_presentacion,
-           pre.tipo,
-           ev.nombre as nombre_evento,
-           count(pe.id_locacion) as entradas
-    from evento ev
+<pre><code>with max_entradas as (
+    select e.tematica, count(*) cant_entradas,
+           p.id_evento, p.id_locacion, p.nro_sala, p.fecha_hora_ini
+    from evento e
+    inner join presentacion p on p.id_evento = e.id
     inner join presentacion_entrada pe
-        on ev.id = pe.id_evento
-    inner join presentacion pre
-        on pe.id_locacion = pre.id_locacion
-       and pe.nro_sala = pre.nro_sala
-       and pe.fecha_hora_ini = pre.fecha_hora_ini
-    where ev.fecha_hasta < now()
-    group by ev.tematica, pe.id_locacion, pe.nro_sala, pe.fecha_hora_ini,
-             pre.nombre, pre.tipo, ev.nombre
+        on pe.id_locacion = p.id_locacion
+       and pe.nro_sala = p.nro_sala
+       and pe.fecha_hora_ini = p.fecha_hora_ini
+    where p.fecha_hora_fin < now()
+    group by e.tematica, p.id_evento, p.id_locacion, p.nro_sala, p.fecha_hora_ini
 ),
-max_ent as (
-    select tematica, max(entradas) as max_cant
-    from ent_pres
+max_por_tematica as (
+    select tematica, max(cant_entradas) max_entradas
+    from max_entradas
     group by tematica
 )
-select ep.tematica, ep.nombre_presentacion, ep.tipo, ep.entradas, ep.nombre_evento
-from ent_pres ep
-inner join max_ent me
-    on ep.tematica = me.tematica
-   and ep.entradas = me.max_cant
-order by ep.entradas desc, ep.fecha_hora_ini desc;
+select me.tematica, pre.nombre, pre.tipo, e.nombre, me.cant_entradas entradas_vendidas
+from max_entradas me
+inner join max_por_tematica mt
+    on me.tematica = mt.tematica
+   and me.cant_entradas = mt.max_entradas
+inner join presentacion pre
+    on pre.id_locacion = me.id_locacion
+   and pre.nro_sala = me.nro_sala
+   and pre.fecha_hora_ini = me.fecha_hora_ini 
+inner join evento e
+    on e.id = me.id_evento
+order by me.cant_entradas desc, pre.fecha_hora_ini desc;
+
 </code></pre>
 
 <hr>
